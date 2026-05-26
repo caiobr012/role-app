@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getCGPlacesByCategoria } from "@/lib/campo-grande";
-import PlaceCard from "@/components/PlaceCard";
+import { getCGPlacesByCategoria, type PlaceEx } from "@/lib/campo-grande";
+import PlacesWithScheduler from "@/components/PlacesWithScheduler";
 import BottomNav from "@/components/BottomNav";
-import OverpassEnhancer from "@/components/OverpassEnhancer";
 
 const QUANDO_LABEL: Record<string, string> = {
   hoje:   "Hoje",
@@ -24,39 +23,29 @@ const CAT_LABEL: Record<string, string> = {
 };
 
 interface Props {
-  searchParams: Promise<{
-    quando?: string;
-    categorias?: string;
-    lat?: string;
-    lng?: string;
-  }>;
+  searchParams: Promise<{ quando?: string; categorias?: string; lat?: string; lng?: string }>;
 }
 
 export default async function DescobrirPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const quando = sp.quando ?? "hoje";
-  const cats = (sp.categorias ?? "").split(",").filter(Boolean);
-  const lat = parseFloat(sp.lat ?? "-20.4697");
-  const lng = parseFloat(sp.lng ?? "-54.6201");
+  const quando   = sp.quando ?? "hoje";
+  const cats     = (sp.categorias ?? "").split(",").filter(Boolean);
 
-  // Dados curados instantâneos — nunca falham
-  const curados = getCGPlacesByCategoria(cats);
+  const places = getCGPlacesByCategoria(cats);
 
   // Agrupa por categoria
-  const grouped: Record<string, typeof curados> = {};
-  for (const p of curados) {
+  const grouped: Record<string, PlaceEx[]> = {};
+  for (const p of places) {
     if (!grouped[p.categoria]) grouped[p.categoria] = [];
     grouped[p.categoria].push(p);
   }
 
   const quandoLabel = QUANDO_LABEL[quando] ?? quando;
-  const catsLabel = cats.length
-    ? cats.map((c) => CAT_LABEL[c] ?? c).join(", ")
-    : "Tudo";
+  const catsLabel   = cats.length ? cats.map((c) => CAT_LABEL[c] ?? c).join(", ") : "Todas as categorias";
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28 max-w-lg mx-auto">
-      {/* cabeçalho */}
+      {/* Cabeçalho */}
       <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
           <Link
@@ -65,42 +54,17 @@ export default async function DescobrirPage({ searchParams }: Props) {
           >
             <ArrowLeft size={16} className="text-gray-600" />
           </Link>
-          <div className="min-w-0">
-            <p className="text-xs text-gray-400 font-medium">{quandoLabel}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-gray-400 font-medium">{quandoLabel} · Campo Grande, MS</p>
             <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{catsLabel}</h1>
           </div>
-          <span className="ml-auto text-xs text-gray-400 flex-shrink-0">
-            {curados.length} lugares
-          </span>
+          <span className="text-xs text-gray-400 flex-shrink-0">{places.length} lugares</span>
         </div>
       </div>
 
+      {/* Lista com agendamento */}
       <div className="px-4 mt-4 space-y-6">
-        {/* Dados curados por categoria */}
-        {Object.entries(grouped).map(([cat, items]) => (
-          <section key={cat}>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              {CAT_LABEL[cat] ?? cat}
-            </h2>
-            <div className="space-y-2">
-              {items.map((place) => (
-                <PlaceCard key={place.id} place={place} />
-              ))}
-            </div>
-          </section>
-        ))}
-
-        {/* Enhancer client-side: busca extra no Overpass sem bloquear */}
-        <OverpassEnhancer
-          cats={cats}
-          lat={lat}
-          lng={lng}
-          curadosIds={curados.map((p) => p.id)}
-        />
-
-        <p className="text-center text-xs text-gray-300 pb-2">
-          Dados curados para Campo Grande, MS
-        </p>
+        <PlacesWithScheduler grouped={grouped} />
       </div>
 
       <BottomNav />

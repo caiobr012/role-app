@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Place } from "@/lib/overpass";
+import type { PlaceEx } from "@/lib/campo-grande";
 import PlaceCard from "./PlaceCard";
+import PlaceScheduler from "./PlaceScheduler";
 
 interface Props {
   cats: string[];
@@ -12,29 +13,26 @@ interface Props {
 }
 
 export default function OverpassEnhancer({ cats, lat, lng, curadosIds }: Props) {
-  const [extras, setExtras] = useState<Place[]>([]);
+  const [extras, setExtras] = useState<PlaceEx[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scheduling, setScheduling] = useState<PlaceEx | null>(null);
 
   useEffect(() => {
     const ctrl = new AbortController();
-
     async function load() {
       try {
         const url = `/api/places?categorias=${cats.join(",")}&lat=${lat}&lng=${lng}`;
         const res = await fetch(url, { signal: ctrl.signal });
         if (!res.ok) return;
         const data = await res.json();
-        const places: Place[] = (data.places ?? []).filter(
-          (p: Place) => !curadosIds.includes(p.id)
+        const places = ((data.places ?? []) as PlaceEx[]).filter(
+          (p) => !curadosIds.includes(p.id)
         );
         setExtras(places);
-      } catch {
-        // silencia — dados curados já estão visíveis
-      } finally {
+      } catch { /* silencia */ } finally {
         setLoading(false);
       }
     }
-
     load();
     return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,15 +50,20 @@ export default function OverpassEnhancer({ cats, lat, lng, curadosIds }: Props) 
   if (!extras.length) return null;
 
   return (
-    <section>
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-        Mais lugares próximos
-      </h2>
-      <div className="space-y-2">
-        {extras.map((place) => (
-          <PlaceCard key={place.id} place={place} />
-        ))}
-      </div>
-    </section>
+    <>
+      <section>
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
+          Mais lugares próximos
+        </h2>
+        <div className="space-y-3">
+          {extras.map((place) => (
+            <PlaceCard key={place.id} place={place} onSchedule={setScheduling} />
+          ))}
+        </div>
+      </section>
+      {scheduling && (
+        <PlaceScheduler place={scheduling} onClose={() => setScheduling(null)} />
+      )}
+    </>
   );
 }
