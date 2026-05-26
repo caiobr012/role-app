@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BASE = "https://places.googleapis.com/v1";
-
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
-  if (!name) return NextResponse.json({ error: "name required" }, { status: 400 });
+  if (!name) return new NextResponse(null, { status: 400 });
 
   const apiKey = process.env.GOOGLE_PLACES_KEY?.trim();
   if (!apiKey) return new NextResponse(null, { status: 204 });
 
+  // Sem skipHttpRedirect: Google retorna 302 → CDN. fetch() segue o redirect
+  // e devolve os bytes da imagem real.
   const res = await fetch(
-    `${BASE}/${name}/media?maxWidthPx=800&key=${apiKey}&skipHttpRedirect=true`,
+    `https://places.googleapis.com/v1/${name}/media?maxWidthPx=800&key=${apiKey}`,
     { next: { revalidate: 86400 } }
   );
 
   if (!res.ok) return new NextResponse(null, { status: res.status });
 
-  const data = await res.json();
-  const photoUri: string | undefined = data.photoUri;
-  if (!photoUri) return new NextResponse(null, { status: 404 });
-
-  return NextResponse.redirect(photoUri, {
-    headers: { "Cache-Control": "public, max-age=86400, immutable" },
+  const contentType = res.headers.get("Content-Type") ?? "image/jpeg";
+  return new NextResponse(res.body, {
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=86400, immutable",
+    },
   });
 }
