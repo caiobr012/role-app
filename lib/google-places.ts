@@ -70,8 +70,9 @@ function mapPlace(p: any, categoria: string, apiKey: string): GooglePlace {
     .slice(0, 5)
     .map((ph: { name?: string }) => ph.name)
     .filter(Boolean);
+  // URLs seguras — proxy server-side esconde a chave da API
   const fotos = photoNames.map(
-    (name) => `${BASE}/${name}/media?maxWidthPx=800&key=${apiKey}&skipHttpRedirect=true`
+    (name) => `/api/photo?name=${encodeURIComponent(name)}`
   );
   const foto = fotos[0];
   const fotoNome = photoNames[0];
