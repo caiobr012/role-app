@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getCGPlacesByCategoria, type PlaceEx } from "@/lib/campo-grande";
-import PlacesWithScheduler from "@/components/PlacesWithScheduler";
 import BottomNav from "@/components/BottomNav";
+import GooglePlacesSection from "@/components/GooglePlacesSection";
 
 const QUANDO_LABEL: Record<string, string> = {
   hoje:   "Hoje",
@@ -12,7 +11,7 @@ const QUANDO_LABEL: Record<string, string> = {
 };
 
 const CAT_LABEL: Record<string, string> = {
-  bares:        "Bares",
+  bares:        "Bares e Botecos",
   restaurantes: "Restaurantes",
   parques:      "Parques",
   cultura:      "Cultura",
@@ -28,20 +27,15 @@ interface Props {
 
 export default async function DescobrirPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const quando   = sp.quando ?? "hoje";
-  const cats     = (sp.categorias ?? "").split(",").filter(Boolean);
-
-  const places = getCGPlacesByCategoria(cats);
-
-  // Agrupa por categoria
-  const grouped: Record<string, PlaceEx[]> = {};
-  for (const p of places) {
-    if (!grouped[p.categoria]) grouped[p.categoria] = [];
-    grouped[p.categoria].push(p);
-  }
+  const quando = sp.quando ?? "hoje";
+  const cats   = (sp.categorias ?? "").split(",").filter(Boolean);
+  const lat    = parseFloat(sp.lat  ?? "-20.4697");
+  const lng    = parseFloat(sp.lng  ?? "-54.6201");
 
   const quandoLabel = QUANDO_LABEL[quando] ?? quando;
-  const catsLabel   = cats.length ? cats.map((c) => CAT_LABEL[c] ?? c).join(", ") : "Todas as categorias";
+  const catsLabel   = cats.length
+    ? cats.map((c) => CAT_LABEL[c] ?? c).join(", ")
+    : "Tudo";
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28 max-w-lg mx-auto">
@@ -58,13 +52,12 @@ export default async function DescobrirPage({ searchParams }: Props) {
             <p className="text-xs text-gray-400 font-medium">{quandoLabel} · Campo Grande, MS</p>
             <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{catsLabel}</h1>
           </div>
-          <span className="text-xs text-gray-400 flex-shrink-0">{places.length} lugares</span>
         </div>
       </div>
 
-      {/* Lista com agendamento */}
+      {/* Lista de lugares — Google Places como fonte principal */}
       <div className="px-4 mt-4 space-y-6">
-        <PlacesWithScheduler grouped={grouped} />
+        <GooglePlacesSection cats={cats} lat={lat} lng={lng} />
       </div>
 
       <BottomNav />
