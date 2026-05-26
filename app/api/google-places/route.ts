@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const lng = parseFloat(searchParams.get("lng") ?? "-54.6201");
   const limit = parseInt(searchParams.get("limit") ?? "20");
 
-  const apiKey = process.env.GOOGLE_PLACES_KEY;
+  const apiKey = process.env.GOOGLE_PLACES_KEY?.trim();
   if (!apiKey) {
     return NextResponse.json(
       { places: [], configured: false },

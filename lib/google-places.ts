@@ -34,7 +34,8 @@ export interface GooglePlace {
   rating?: number;
   totalAvaliacoes?: number;
   foto?: string;
-  fotoNome?: string; // referência para buscar foto via API
+  fotos?: string[]; // todas as fotos disponíveis para fallback
+  fotoNome?: string;
 }
 
 // Queries por categoria
@@ -64,11 +65,16 @@ const CATEGORIA_META: Record<string, { label: string; emoji: string; cor: string
 function mapPlace(p: any, categoria: string, apiKey: string): GooglePlace {
   const meta = CATEGORIA_META[categoria] ?? CATEGORIA_META.bares;
 
-  // Primeiro nome de foto disponível
-  const fotoNome: string | undefined = p.photos?.[0]?.name;
-  const foto = fotoNome
-    ? `${BASE}/${fotoNome}/media?maxWidthPx=800&key=${apiKey}&skipHttpRedirect=true`
-    : undefined;
+  // Todas as fotos disponíveis (até 5)
+  const photoNames: string[] = (p.photos ?? [])
+    .slice(0, 5)
+    .map((ph: { name?: string }) => ph.name)
+    .filter(Boolean);
+  const fotos = photoNames.map(
+    (name) => `${BASE}/${name}/media?maxWidthPx=800&key=${apiKey}&skipHttpRedirect=true`
+  );
+  const foto = fotos[0];
+  const fotoNome = photoNames[0];
 
   // Horário de hoje
   const hoje = new Date().getDay(); // 0=dom, 1=seg...
@@ -94,6 +100,7 @@ function mapPlace(p: any, categoria: string, apiKey: string): GooglePlace {
     rating: p.rating,
     totalAvaliacoes: p.userRatingCount,
     foto,
+    fotos,
     fotoNome,
   };
 }

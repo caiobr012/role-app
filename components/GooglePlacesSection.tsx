@@ -40,20 +40,25 @@ function GooglePlaceCard({
   onSchedule: (p: PlaceEx) => void;
 }) {
   const mapsUrl = `https://www.google.com/maps/place/?q=place_id:${place.id}`;
-  const [imgError, setImgError] = useState(false);
+  const allPhotos = place.fotos?.length ? place.fotos : place.foto ? [place.foto] : [];
+  const [photoIdx, setPhotoIdx] = useState(0);
+
+  const currentPhoto = allPhotos[photoIdx];
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
       {/* Foto real do Google Maps */}
       <div className="relative h-44 bg-gray-100">
-        {place.foto && !imgError ? (
+        {currentPhoto ? (
           <Image
-            src={place.foto}
+            src={currentPhoto}
             alt={place.nome}
             fill
             sizes="(max-width: 512px) 100vw, 512px"
             className="object-cover"
-            onError={() => setImgError(true)}
+            onError={() => {
+              if (photoIdx < allPhotos.length - 1) setPhotoIdx(photoIdx + 1);
+            }}
             unoptimized // necessário para URLs externas dinâmicas do Google
           />
         ) : (
