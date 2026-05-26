@@ -1,18 +1,18 @@
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-[#F5F3FF] max-w-lg mx-auto flex flex-col items-center justify-center gap-4 px-8 text-center">
-      <div className="w-20 h-20 bg-violet-100 rounded-full flex items-center justify-center animate-pulse">
-        <span className="text-4xl">🗺️</span>
+    <div className="min-h-screen bg-gray-50 max-w-lg mx-auto flex flex-col">
+      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
+        <div className="h-3 w-24 bg-gray-200 rounded-full animate-pulse" />
+        <div className="h-5 w-48 bg-gray-200 rounded-full animate-pulse mt-2" />
       </div>
-      <h2 className="text-xl font-bold text-gray-800">Encontrando os melhores lugares...</h2>
-      <p className="text-gray-500 text-sm">Buscando opções perto de você no OpenStreetMap</p>
-      <div className="flex gap-2 mt-2">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="w-2 h-2 rounded-full bg-violet-400 animate-bounce"
-            style={{ animationDelay: `${i * 0.15}s` }}
-          />
+      <div className="px-4 mt-4 space-y-6">
+        {[1, 2, 3].map((g) => (
+          <div key={g}>
+            <div className="h-3 w-20 bg-gray-200 rounded animate-pulse mb-3" />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-100 h-20 animate-pulse mb-2" />
+            ))}
+          </div>
         ))}
       </div>
     </div>

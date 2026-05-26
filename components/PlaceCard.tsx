@@ -1,47 +1,98 @@
-import Link from "next/link";
 import type { Place } from "@/lib/overpass";
 import { formatDistancia } from "@/lib/overpass";
-import { Phone, Globe, Clock } from "lucide-react";
+import {
+  Phone, Globe, MapPin, Clock,
+  Beer, UtensilsCrossed, TreePine, Drama,
+  Landmark, Music, ShoppingBag, Trophy, Compass,
+} from "lucide-react";
+
+const CAT_ICONS: Record<string, React.ElementType> = {
+  bares:        Beer,
+  restaurantes: UtensilsCrossed,
+  parques:      TreePine,
+  cultura:      Drama,
+  museus:       Landmark,
+  shows:        Music,
+  feiras:       ShoppingBag,
+  esportes:     Trophy,
+};
+
+const CAT_COLORS: Record<string, string> = {
+  bares:        "bg-amber-50  text-amber-700",
+  restaurantes: "bg-orange-50 text-orange-700",
+  parques:      "bg-emerald-50 text-emerald-700",
+  cultura:      "bg-purple-50 text-purple-700",
+  museus:       "bg-yellow-50 text-yellow-800",
+  shows:        "bg-violet-50 text-violet-700",
+  feiras:       "bg-pink-50   text-pink-700",
+  esportes:     "bg-teal-50   text-teal-700",
+};
+
+const CAT_ICON_BG: Record<string, string> = {
+  bares:        "bg-amber-100  text-amber-600",
+  restaurantes: "bg-orange-100 text-orange-600",
+  parques:      "bg-emerald-100 text-emerald-600",
+  cultura:      "bg-purple-100 text-purple-600",
+  museus:       "bg-yellow-100 text-yellow-700",
+  shows:        "bg-violet-100 text-violet-600",
+  feiras:       "bg-pink-100   text-pink-600",
+  esportes:     "bg-teal-100   text-teal-600",
+};
 
 export default function PlaceCard({ place }: { place: Place }) {
+  const Icon = CAT_ICONS[place.categoria] ?? Compass;
+  const chipCls = CAT_COLORS[place.categoria] ?? "bg-gray-100 text-gray-600";
+  const iconBg  = CAT_ICON_BG[place.categoria] ?? "bg-gray-100 text-gray-500";
+  const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(place.nome + " Campo Grande MS")}`;
+
   return (
-    <div className="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-violet-100">
-      <div className="flex gap-0">
-        <div className={`bg-gradient-to-br ${place.cor} w-20 flex-shrink-0 flex items-center justify-center`}>
-          <span className="text-3xl">{place.emoji}</span>
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+      <div className="flex items-stretch gap-0">
+        {/* ícone lateral */}
+        <div className="flex items-center justify-center w-16 flex-shrink-0 border-r border-gray-100">
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${iconBg}`}>
+            <Icon size={18} />
+          </div>
         </div>
-        <div className="flex-1 p-3 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+
+        {/* conteúdo */}
+        <div className="flex-1 px-3 py-3 min-w-0">
+          {/* linha 1: categoria + distância */}
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${chipCls}`}>
               {place.categoriaLabel}
             </span>
             {place.distanciaM !== undefined && (
-              <span className="text-[11px] text-gray-400 flex-shrink-0">
-                📍 {formatDistancia(place.distanciaM)}
+              <span className="text-[11px] text-gray-400 tabular-nums">
+                {formatDistancia(place.distanciaM)}
               </span>
             )}
           </div>
-          <h3 className="font-bold text-gray-900 mt-1 text-sm leading-snug line-clamp-1">
-            {place.nome}
-          </h3>
-          <p className="text-xs text-gray-500 mt-0.5 truncate">{place.endereco}</p>
 
-          {/* Horário se disponível */}
+          {/* nome */}
+          <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">
+            {place.nome}
+          </p>
+
+          {/* endereço */}
+          <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{place.endereco}</p>
+
+          {/* horário */}
           {place.horario && (
             <div className="flex items-center gap-1 mt-1">
-              <Clock size={11} className="text-green-500 flex-shrink-0" />
-              <span className="text-[11px] text-green-600 truncate">{place.horario.split(";")[0]}</span>
+              <Clock size={10} className="text-gray-400 flex-shrink-0" />
+              <span className="text-[11px] text-gray-400 truncate">{place.horario.split(";")[0]}</span>
             </div>
           )}
 
-          {/* Links */}
-          <div className="flex gap-2 mt-2">
+          {/* ações */}
+          <div className="flex items-center gap-1.5 mt-2">
             {place.telefone && (
               <a
                 href={`tel:${place.telefone}`}
-                className="flex items-center gap-1 bg-violet-50 text-violet-600 text-[11px] font-medium px-2 py-1 rounded-lg"
+                className="flex items-center gap-1 text-[11px] font-medium text-violet-600 bg-violet-50 px-2 py-1 rounded-lg"
               >
-                <Phone size={11} /> Ligar
+                <Phone size={10} /> Ligar
               </a>
             )}
             {place.website && (
@@ -49,18 +100,18 @@ export default function PlaceCard({ place }: { place: Place }) {
                 href={place.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] font-medium px-2 py-1 rounded-lg"
+                className="flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-lg"
               >
-                <Globe size={11} /> Site
+                <Globe size={10} /> Site
               </a>
             )}
             <a
-              href={`https://www.google.com/maps?q=${place.lat},${place.lng}`}
+              href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 bg-gray-50 text-gray-600 text-[11px] font-medium px-2 py-1 rounded-lg ml-auto"
+              className="flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-lg ml-auto"
             >
-              🗺️ Mapa
+              <MapPin size={10} /> Ver no mapa
             </a>
           </div>
         </div>

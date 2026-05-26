@@ -1,25 +1,26 @@
 import Link from "next/link";
-import { ArrowLeft, RefreshCw, AlertTriangle } from "lucide-react";
-import { fetchPlaces, type Place } from "@/lib/overpass";
+import { ArrowLeft } from "lucide-react";
+import { getCGPlacesByCategoria } from "@/lib/campo-grande";
 import PlaceCard from "@/components/PlaceCard";
 import BottomNav from "@/components/BottomNav";
+import OverpassEnhancer from "@/components/OverpassEnhancer";
 
-const QUANDO_LABELS: Record<string, string> = {
-  hoje:   "🔥 Hoje",
-  amanha: "📅 Amanhã",
-  fds:    "🎉 Fim de semana",
-  semana: "📆 Esta semana",
+const QUANDO_LABEL: Record<string, string> = {
+  hoje:   "Hoje",
+  amanha: "Amanhã",
+  fds:    "Fim de semana",
+  semana: "Esta semana",
 };
 
-const CAT_LABELS: Record<string, string> = {
-  bares:        "🍺 Bares",
-  restaurantes: "🍽️ Restaurantes",
-  parques:      "🌿 Parques",
-  cultura:      "🎭 Cultura",
-  museus:       "🏛️ Museus",
-  shows:        "🎵 Shows",
-  feiras:       "🛍️ Feiras",
-  esportes:     "⚽ Esportes",
+const CAT_LABEL: Record<string, string> = {
+  bares:        "Bares",
+  restaurantes: "Restaurantes",
+  parques:      "Parques",
+  cultura:      "Cultura",
+  museus:       "Museus",
+  shows:        "Shows",
+  feiras:       "Feiras",
+  esportes:     "Esportes",
 };
 
 interface Props {
@@ -32,130 +33,74 @@ interface Props {
 }
 
 export default async function DescobrirPage({ searchParams }: Props) {
-  const params = await searchParams;
+  const sp = await searchParams;
+  const quando = sp.quando ?? "hoje";
+  const cats = (sp.categorias ?? "").split(",").filter(Boolean);
+  const lat = parseFloat(sp.lat ?? "-20.4697");
+  const lng = parseFloat(sp.lng ?? "-54.6201");
 
-  const quando = params.quando ?? "hoje";
-  const cats = (params.categorias ?? "").split(",").filter(Boolean);
-  const lat = parseFloat(params.lat ?? "-15.7801");
-  const lng = parseFloat(params.lng ?? "-47.9292");
-
-  // Busca dados reais no Overpass/OSM
-  let places: Place[] = [];
-  let errorMsg: string | null = null;
-
-  try {
-    places = await fetchPlaces(cats, lat, lng, 10000, 50);
-  } catch {
-    errorMsg = "Não conseguimos conectar ao mapa. Verifique sua internet.";
-  }
+  // Dados curados instantâneos — nunca falham
+  const curados = getCGPlacesByCategoria(cats);
 
   // Agrupa por categoria
-  const grouped: Record<string, Place[]> = {};
-  for (const p of places) {
+  const grouped: Record<string, typeof curados> = {};
+  for (const p of curados) {
     if (!grouped[p.categoria]) grouped[p.categoria] = [];
     grouped[p.categoria].push(p);
   }
 
-  const hasResults = places.length > 0;
-  const backUrl = "/";
+  const quandoLabel = QUANDO_LABEL[quando] ?? quando;
+  const catsLabel = cats.length
+    ? cats.map((c) => CAT_LABEL[c] ?? c).join(", ")
+    : "Tudo";
 
   return (
-    <div className="min-h-screen bg-[#F5F3FF] pb-28 max-w-lg mx-auto">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-violet-600 to-violet-800 px-4 pt-12 pb-6">
-        <div className="flex items-center gap-3 mb-4">
+    <div className="min-h-screen bg-gray-50 pb-28 max-w-lg mx-auto">
+      {/* cabeçalho */}
+      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
+        <div className="flex items-center gap-3">
           <Link
-            href={backUrl}
-            className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0"
+            href="/"
+            className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0"
           >
-            <ArrowLeft size={18} className="text-white" />
+            <ArrowLeft size={16} className="text-gray-600" />
           </Link>
           <div className="min-w-0">
-            <h1 className="text-white font-bold text-lg leading-tight">
-              {QUANDO_LABELS[quando] ?? quando}
-            </h1>
-            <p className="text-violet-200 text-xs mt-0.5">
-              {hasResults ? `${places.length} lugares encontrados` : "Procurando..."}
-            </p>
+            <p className="text-xs text-gray-400 font-medium">{quandoLabel}</p>
+            <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{catsLabel}</h1>
           </div>
+          <span className="ml-auto text-xs text-gray-400 flex-shrink-0">
+            {curados.length} lugares
+          </span>
         </div>
-
-        {/* Chips de categoria selecionada */}
-        {cats.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {cats.map((c) => (
-              <span
-                key={c}
-                className="text-[11px] font-semibold bg-white/20 text-white px-2.5 py-1 rounded-full backdrop-blur-sm"
-              >
-                {CAT_LABELS[c] ?? c}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
-      <div className="px-4 mt-5 space-y-6">
-        {/* Erro */}
-        {errorMsg && (
-          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex gap-3">
-            <AlertTriangle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-red-700">Ops, algo deu errado</p>
-              <p className="text-xs text-red-500 mt-0.5">{errorMsg}</p>
+      <div className="px-4 mt-4 space-y-6">
+        {/* Dados curados por categoria */}
+        {Object.entries(grouped).map(([cat, items]) => (
+          <section key={cat}>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              {CAT_LABEL[cat] ?? cat}
+            </h2>
+            <div className="space-y-2">
+              {items.map((place) => (
+                <PlaceCard key={place.id} place={place} />
+              ))}
             </div>
-          </div>
-        )}
+          </section>
+        ))}
 
-        {/* Nenhum resultado */}
-        {!errorMsg && !hasResults && (
-          <div className="text-center py-16">
-            <span className="text-5xl">🔍</span>
-            <p className="text-gray-700 font-bold mt-3">Nenhum lugar encontrado</p>
-            <p className="text-gray-500 text-sm mt-1 leading-relaxed">
-              Não achamos resultados para essa combinação no OpenStreetMap.
-              Tente outras categorias ou aumente o raio de busca.
-            </p>
-            <Link
-              href={backUrl}
-              className="inline-flex items-center gap-2 mt-5 bg-violet-600 text-white font-semibold px-5 py-3 rounded-2xl"
-            >
-              <RefreshCw size={16} /> Tentar de novo
-            </Link>
-          </div>
-        )}
+        {/* Enhancer client-side: busca extra no Overpass sem bloquear */}
+        <OverpassEnhancer
+          cats={cats}
+          lat={lat}
+          lng={lng}
+          curadosIds={curados.map((p) => p.id)}
+        />
 
-        {/* Resultados por categoria */}
-        {hasResults &&
-          Object.entries(grouped).map(([cat, items]) => (
-            <section key={cat}>
-              <h2 className="font-bold text-gray-900 text-base mb-3">
-                {CAT_LABELS[cat] ?? cat}{" "}
-                <span className="text-xs font-normal text-gray-400">({items.length})</span>
-              </h2>
-              <div className="space-y-3">
-                {items.map((place) => (
-                  <PlaceCard key={place.id} place={place} />
-                ))}
-              </div>
-            </section>
-          ))}
-
-        {/* Fonte dos dados */}
-        {hasResults && (
-          <p className="text-center text-xs text-gray-400 pb-4">
-            Dados do{" "}
-            <a
-              href="https://www.openstreetmap.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-violet-400 underline"
-            >
-              OpenStreetMap
-            </a>{" "}
-            · atualizado a cada hora
-          </p>
-        )}
+        <p className="text-center text-xs text-gray-300 pb-2">
+          Dados curados para Campo Grande, MS
+        </p>
       </div>
 
       <BottomNav />

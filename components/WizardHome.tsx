@@ -2,181 +2,174 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, ChevronRight, ChevronLeft, Loader2, LocateFixed } from "lucide-react";
+import {
+  Flame, CalendarDays, CalendarRange, Calendar,
+  Beer, UtensilsCrossed, TreePine, Drama,
+  Landmark, Music, ShoppingBag, Trophy,
+  ChevronRight, ChevronLeft, LocateFixed, Loader2, MapPin,
+} from "lucide-react";
 
-const DATE_OPTIONS = [
-  { id: "hoje",     label: "Hoje",          sub: "Agora mesmo",      emoji: "🔥" },
-  { id: "amanha",   label: "Amanhã",        sub: "Planejando adiantado", emoji: "📅" },
-  { id: "fds",      label: "Fim de semana", sub: "Sábado ou domingo", emoji: "🎉" },
-  { id: "semana",   label: "Esta semana",   sub: "Qualquer dia",      emoji: "📆" },
+// ── tipos ───────────────────────────────────────────────────────────────────
+
+interface DateOption {
+  id: string;
+  label: string;
+  sub: string;
+  Icon: React.ElementType;
+}
+
+interface CatOption {
+  id: string;
+  label: string;
+  Icon: React.ElementType;
+}
+
+// ── dados ───────────────────────────────────────────────────────────────────
+
+const DATE_OPTIONS: DateOption[] = [
+  { id: "hoje",    label: "Hoje",           sub: "Agora mesmo",           Icon: Flame        },
+  { id: "amanha",  label: "Amanhã",         sub: "Planejando adiantado",  Icon: CalendarDays  },
+  { id: "fds",     label: "Fim de semana",  sub: "Sábado ou domingo",     Icon: CalendarRange },
+  { id: "semana",  label: "Esta semana",    sub: "Qualquer dia",          Icon: Calendar      },
 ];
 
-const CATEGORY_OPTIONS = [
-  { id: "bares",        emoji: "🍺", label: "Bares & Botecos"   },
-  { id: "restaurantes", emoji: "🍽️", label: "Restaurantes"      },
-  { id: "parques",      emoji: "🌿", label: "Parques & Natureza" },
-  { id: "cultura",      emoji: "🎭", label: "Teatro & Cinema"   },
-  { id: "museus",       emoji: "🏛️", label: "Museus"            },
-  { id: "shows",        emoji: "🎵", label: "Shows & Música"    },
-  { id: "feiras",       emoji: "🛍️", label: "Feiras"            },
-  { id: "esportes",     emoji: "⚽", label: "Esportes"          },
+const CAT_OPTIONS: CatOption[] = [
+  { id: "bares",        label: "Bares",       Icon: Beer            },
+  { id: "restaurantes", label: "Restaurantes",Icon: UtensilsCrossed },
+  { id: "parques",      label: "Parques",     Icon: TreePine        },
+  { id: "cultura",      label: "Cultura",     Icon: Drama           },
+  { id: "museus",       label: "Museus",      Icon: Landmark        },
+  { id: "shows",        label: "Shows",       Icon: Music           },
+  { id: "feiras",       label: "Feiras",      Icon: ShoppingBag     },
+  { id: "esportes",     label: "Esportes",    Icon: Trophy          },
 ];
 
-function getGreeting() {
+function greeting() {
   const h = new Date().getHours();
   if (h < 12) return "Bom dia";
   if (h < 18) return "Boa tarde";
   return "Boa noite";
 }
 
+// ── componente ───────────────────────────────────────────────────────────────
+
 export default function WizardHome() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const [quando, setQuando] = useState("");
-  const [categorias, setCategorias] = useState<string[]>([]);
-  const [lat, setLat] = useState(-15.7801);
-  const [lng, setLng] = useState(-47.9292);
-  const [locLabel, setLocLabel] = useState("Brasília, DF");
+  const [cats, setCats] = useState<string[]>([]);
+  const [lat, setLat] = useState(-20.4697);
+  const [lng, setLng] = useState(-54.6201);
+  const [locLabel, setLocLabel] = useState("Campo Grande, MS");
   const [locLoading, setLocLoading] = useState(false);
 
   useEffect(() => {
-    // Tenta geolocalização silenciosamente ao carregar
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLat(pos.coords.latitude);
-          setLng(pos.coords.longitude);
-          setLocLabel("Localização atual");
-        },
-        () => { /* sem permissão, usa Brasília */ },
-        { timeout: 5000 }
-      );
-    }
+    navigator.geolocation?.getCurrentPosition(
+      (p) => { setLat(p.coords.latitude); setLng(p.coords.longitude); setLocLabel("Localização atual"); },
+      () => {},
+      { timeout: 5000 }
+    );
   }, []);
 
-  function requestLocation() {
+  function requestLoc() {
     if (!navigator.geolocation) return;
     setLocLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setLocLabel("Localização atual");
-        setLocLoading(false);
-      },
+      (p) => { setLat(p.coords.latitude); setLng(p.coords.longitude); setLocLabel("Localização atual"); setLocLoading(false); },
       () => setLocLoading(false),
       { timeout: 8000 }
     );
   }
 
-  function toggleCategoria(id: string) {
-    setCategorias((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
+  function toggle(id: string) {
+    setCats((prev) => prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]);
   }
 
-  function handleBuscar() {
-    const cats = categorias.length > 0 ? categorias : CATEGORY_OPTIONS.map((c) => c.id);
-    const params = new URLSearchParams({
-      quando,
-      categorias: cats.join(","),
-      lat: String(lat),
-      lng: String(lng),
-    });
-    router.push(`/descobrir?${params.toString()}`);
+  function go() {
+    const selected = cats.length ? cats : CAT_OPTIONS.map((c) => c.id);
+    router.push(`/descobrir?quando=${quando}&categorias=${selected.join(",")}&lat=${lat}&lng=${lng}`);
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F3FF] max-w-lg mx-auto flex flex-col">
-      {/* Header fixo */}
-      <div className="bg-gradient-to-br from-violet-600 to-violet-800 px-4 pt-12 pb-6">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-2xl font-black text-white tracking-tight">rolê</span>
+    <div className="min-h-screen bg-white max-w-lg mx-auto flex flex-col">
+      {/* cabeçalho */}
+      <div className="px-5 pt-14 pb-6 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <span className="text-xl font-black text-violet-600 tracking-tight">rolê</span>
           <button
-            onClick={requestLocation}
-            className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-full text-xs text-white font-medium"
+            onClick={requestLoc}
+            className="flex items-center gap-1.5 text-xs text-gray-500 font-medium"
           >
-            {locLoading ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <LocateFixed size={12} />
-            )}
-            <span>{locLabel}</span>
+            {locLoading ? <Loader2 size={13} className="animate-spin text-violet-500" /> : <MapPin size={13} className="text-violet-500" />}
+            {locLabel}
           </button>
         </div>
-        <p className="text-violet-200 text-sm mt-2">{getGreeting()} 👋 Vamos marcar um rolê?</p>
+        <p className="text-gray-400 text-sm mt-3">{greeting()}</p>
+        <h1 className="text-2xl font-bold text-gray-900 mt-0.5 leading-tight">
+          {step === 1 ? "Quando você quer sair?" : "O que você quer fazer?"}
+        </h1>
 
-        {/* Progress */}
-        <div className="flex gap-2 mt-4">
+        {/* barra de progresso */}
+        <div className="flex gap-1.5 mt-4">
           {[1, 2].map((n) => (
-            <div
-              key={n}
-              className={`h-1 flex-1 rounded-full transition-all ${
-                n <= step ? "bg-amber-400" : "bg-white/25"
-              }`}
-            />
+            <div key={n} className={`h-0.5 flex-1 rounded-full transition-all duration-300 ${n <= step ? "bg-violet-600" : "bg-gray-200"}`} />
           ))}
         </div>
       </div>
 
-      {/* Conteúdo do step */}
-      <div className="flex-1 px-4 py-6">
+      {/* conteúdo */}
+      <div className="flex-1 px-5 py-6 overflow-y-auto">
         {step === 1 && (
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Quando você quer sair?</h2>
-            <p className="text-gray-500 text-sm mb-5">Escolha o melhor momento pro rolê</p>
-            <div className="grid grid-cols-2 gap-3">
-              {DATE_OPTIONS.map((opt) => (
+          <div className="grid grid-cols-2 gap-3">
+            {DATE_OPTIONS.map(({ id, label, sub, Icon }) => {
+              const active = quando === id;
+              return (
                 <button
-                  key={opt.id}
-                  onClick={() => setQuando(opt.id)}
-                  className={`rounded-2xl p-4 text-left transition-all border-2 ${
-                    quando === opt.id
-                      ? "border-violet-600 bg-violet-50 shadow-md shadow-violet-100"
-                      : "border-gray-100 bg-white"
+                  key={id}
+                  onClick={() => setQuando(id)}
+                  className={`rounded-xl p-4 text-left border transition-all ${
+                    active
+                      ? "border-violet-600 bg-violet-50"
+                      : "border-gray-200 bg-white hover:border-gray-300"
                   }`}
                 >
-                  <span className="text-3xl">{opt.emoji}</span>
-                  <p className="font-bold text-gray-900 mt-2 text-sm">{opt.label}</p>
-                  <p className="text-gray-400 text-xs mt-0.5">{opt.sub}</p>
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${active ? "bg-violet-600" : "bg-gray-100"}`}>
+                    <Icon size={18} className={active ? "text-white" : "text-gray-500"} />
+                  </div>
+                  <p className={`font-semibold text-sm ${active ? "text-violet-700" : "text-gray-800"}`}>{label}</p>
+                  <p className="text-gray-400 text-xs mt-0.5 leading-snug">{sub}</p>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
         )}
 
         {step === 2 && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">O que vocês querem fazer?</h2>
-            <p className="text-gray-500 text-sm mb-5">
-              Pode marcar mais de uma opção
-              {categorias.length > 0 && (
-                <span className="ml-1 font-semibold text-violet-600">
-                  ({categorias.length} selecionado{categorias.length > 1 ? "s" : ""})
-                </span>
-              )}
-            </p>
+            {cats.length > 0 && (
+              <p className="text-xs text-violet-600 font-medium mb-4">
+                {cats.length} selecionado{cats.length > 1 ? "s" : ""} — ou deixe em branco para ver tudo
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-3">
-              {CATEGORY_OPTIONS.map((opt) => {
-                const sel = categorias.includes(opt.id);
+              {CAT_OPTIONS.map(({ id, label, Icon }) => {
+                const active = cats.includes(id);
                 return (
                   <button
-                    key={opt.id}
-                    onClick={() => toggleCategoria(opt.id)}
-                    className={`rounded-2xl p-4 text-left transition-all border-2 ${
-                      sel
-                        ? "border-violet-600 bg-violet-50 shadow-md shadow-violet-100"
-                        : "border-gray-100 bg-white"
+                    key={id}
+                    onClick={() => toggle(id)}
+                    className={`rounded-xl p-4 text-left border transition-all ${
+                      active
+                        ? "border-violet-600 bg-violet-50"
+                        : "border-gray-200 bg-white hover:border-gray-300"
                     }`}
                   >
-                    <span className="text-3xl">{opt.emoji}</span>
-                    <p className={`font-bold mt-2 text-sm ${sel ? "text-violet-700" : "text-gray-900"}`}>
-                      {opt.label}
-                    </p>
-                    {sel && (
-                      <span className="inline-block mt-1 w-4 h-4 bg-violet-600 rounded-full text-white text-[10px] flex items-center justify-center">
-                        ✓
-                      </span>
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${active ? "bg-violet-600" : "bg-gray-100"}`}>
+                      <Icon size={18} className={active ? "text-white" : "text-gray-500"} />
+                    </div>
+                    <p className={`font-semibold text-sm ${active ? "text-violet-700" : "text-gray-800"}`}>{label}</p>
+                    {active && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5" />
                     )}
                   </button>
                 );
@@ -186,40 +179,39 @@ export default function WizardHome() {
         )}
       </div>
 
-      {/* Botões de navegação */}
-      <div className="px-4 pb-10 flex gap-3">
-        {step > 1 && (
+      {/* rodapé de ação */}
+      <div className="px-5 pb-10 pt-3 border-t border-gray-100 flex gap-3">
+        {step === 2 && (
           <button
-            onClick={() => setStep((s) => s - 1)}
-            className="w-12 h-14 bg-white border border-gray-200 rounded-2xl flex items-center justify-center flex-shrink-0"
+            onClick={() => setStep(1)}
+            className="w-12 h-12 rounded-xl border border-gray-200 flex items-center justify-center flex-shrink-0 text-gray-500"
           >
-            <ChevronLeft size={20} className="text-gray-600" />
+            <ChevronLeft size={18} />
           </button>
         )}
 
-        {step === 1 && (
+        {step === 1 ? (
           <button
             disabled={!quando}
             onClick={() => setStep(2)}
-            className={`flex-1 h-14 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
               quando
-                ? "bg-violet-600 text-white shadow-lg shadow-violet-200"
+                ? "bg-violet-600 text-white"
                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
             }`}
           >
-            Próximo <ChevronRight size={20} />
+            Próximo <ChevronRight size={16} />
           </button>
-        )}
-
-        {step === 2 && (
+        ) : (
           <button
-            onClick={handleBuscar}
-            className="flex-1 h-14 rounded-2xl bg-amber-400 text-violet-900 font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-100"
+            onClick={go}
+            className="flex-1 h-12 rounded-xl bg-amber-400 text-gray-900 font-semibold text-sm flex items-center justify-center gap-2"
           >
-            {categorias.length > 0
-              ? `Ver opções de rolê (${categorias.length})`
-              : "Ver todas as opções"}{" "}
-            🚀
+            {cats.length
+              ? `Ver opções (${cats.length} categorias)`
+              : "Ver todas as opções"
+            }
+            <ChevronRight size={16} />
           </button>
         )}
       </div>
