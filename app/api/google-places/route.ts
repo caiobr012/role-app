@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   const lat = parseFloat(searchParams.get("lat") ?? "-20.4697");
   const lng = parseFloat(searchParams.get("lng") ?? "-54.6201");
   const limit = parseInt(searchParams.get("limit") ?? "20");
+  const customQuery = searchParams.get("query") ?? undefined;
 
   const apiKey = process.env.GOOGLE_PLACES_KEY?.trim();
   if (!apiKey) {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const places = await searchPlaces(categoria, lat, lng, apiKey, limit);
+    const places = await searchPlaces(categoria, lat, lng, apiKey, limit, customQuery);
     return NextResponse.json(
       { places, configured: true, total: places.length },
       {

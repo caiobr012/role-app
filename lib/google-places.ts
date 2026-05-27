@@ -111,9 +111,11 @@ export async function searchPlaces(
   lat: number,
   lng: number,
   apiKey: string,
-  limit = 20
+  limit = 20,
+  customQuery?: string
 ): Promise<GooglePlace[]> {
-  const query = CATEGORIA_QUERY[categoria] ?? `${categoria} Campo Grande MS`;
+  const base = customQuery ?? CATEGORIA_QUERY[categoria] ?? categoria;
+  const query = base.includes("Campo Grande") ? base : `${base} Campo Grande MS`;
 
   const body = {
     textQuery: query,

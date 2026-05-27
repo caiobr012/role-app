@@ -2,14 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, CalendarDays, Heart, MapPin } from "lucide-react";
+import { Home, CalendarDays, Star } from "lucide-react";
 
 const ITEMS = [
-  { href: "/",           Icon: Home,        label: "Início"     },
-  { href: "/buscar",     Icon: Search,      label: "Buscar"     },
-  { href: "/programacao",Icon: CalendarDays,label: "Agenda"     },
-  { href: "/mapa",       Icon: MapPin,      label: "Mapa"       },
-  { href: "/favoritos",  Icon: Heart,       label: "Salvos"     },
+  { href: "/",        Icon: Home,        label: "Início" },
+  { href: "/agenda",  Icon: CalendarDays,label: "Agenda" },
+  { href: "/visitas", Icon: Star,        label: "Visitas" },
 ];
 
 export default function BottomNav() {

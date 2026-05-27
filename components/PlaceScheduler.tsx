@@ -3,22 +3,21 @@
 import { useState, useEffect } from "react";
 import { X, Share2, Check, CalendarCheck } from "lucide-react";
 import type { PlaceEx } from "@/lib/campo-grande";
+import { addAgendamento, syncToCloud, getUser } from "@/lib/storage";
 
-// ── Geração de opções de data ─────────────────────────────────────────────
+// ── Geração de opções de data ─────────────────────────────────────────────────
 
 interface DateOpt { id: string; label: string; sub: string; date: Date }
 
 function buildDateOptions(): DateOpt[] {
   const opts: DateOpt[] = [];
   const today = new Date();
+  const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
-
-    const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-    const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
     opts.push({
       id: String(i),
       label: i === 0 ? "Hoje" : i === 1 ? "Amanhã" : weekdays[d.getDay()],
@@ -35,7 +34,7 @@ const TIMES = [
   "21:00", "22:00", "23:00",
 ];
 
-// ── Componente ────────────────────────────────────────────────────────────
+// ── Componente ────────────────────────────────────────────────────────────────
 
 interface Props {
   place: PlaceEx;
@@ -48,14 +47,12 @@ export default function PlaceScheduler({ place, onClose }: Props) {
   const [time, setTime] = useState("19:00");
   const [confirmed, setConfirmed] = useState(false);
 
-  // Fecha ao pressionar Escape
   useEffect(() => {
     const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
   }, [onClose]);
 
-  // Bloqueia scroll do body enquanto aberto
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
@@ -64,7 +61,21 @@ export default function PlaceScheduler({ place, onClose }: Props) {
   const selectedDate = dates.find((d) => d.id === dateId)!;
   const dateStr = `${selectedDate.label}, ${selectedDate.sub}`;
 
-  function handleConfirm() {
+  async function handleConfirm() {
+    addAgendamento({
+      placeName: place.nome,
+      placeAddress: place.endereco ?? "",
+      placeCategory: place.categoria,
+      placeCategoryLabel: place.categoriaLabel,
+      placeEmoji: place.emoji,
+      placeColor: place.cor,
+      dateLabel: selectedDate.label,
+      dateSub: selectedDate.sub,
+      time,
+      fullDate: selectedDate.date.toISOString(),
+    });
+    const user = getUser();
+    if (user) await syncToCloud(user.nome);
     setConfirmed(true);
   }
 
@@ -79,23 +90,15 @@ export default function PlaceScheduler({ place, onClose }: Props) {
 
   return (
     <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Sheet */}
       <div className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto bg-white rounded-t-2xl shadow-2xl">
-        {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-gray-200" />
         </div>
 
         {!confirmed ? (
-          // ── Tela de seleção ─────────────────────────────────────────────
           <div className="px-5 pb-8">
-            {/* Cabeçalho */}
             <div className="flex items-start justify-between mb-5 mt-2">
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-400 font-medium">Marcar rolê em</p>
@@ -111,10 +114,7 @@ export default function PlaceScheduler({ place, onClose }: Props) {
               </button>
             </div>
 
-            {/* Seleção de dia */}
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Qual dia?
-            </p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Qual dia?</p>
             <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
               {dates.map((d) => (
                 <button
@@ -134,10 +134,7 @@ export default function PlaceScheduler({ place, onClose }: Props) {
               ))}
             </div>
 
-            {/* Seleção de horário */}
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-5 mb-2">
-              Que horas?
-            </p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-5 mb-2">Que horas?</p>
             <div className="grid grid-cols-5 gap-2">
               {TIMES.map((t) => (
                 <button
@@ -154,7 +151,6 @@ export default function PlaceScheduler({ place, onClose }: Props) {
               ))}
             </div>
 
-            {/* Resumo */}
             <div className="bg-gray-50 rounded-xl p-3 mt-5 flex items-center gap-3">
               <CalendarCheck size={18} className="text-violet-500 flex-shrink-0" />
               <div className="min-w-0">
@@ -164,7 +160,6 @@ export default function PlaceScheduler({ place, onClose }: Props) {
               </div>
             </div>
 
-            {/* Confirmar */}
             <button
               onClick={handleConfirm}
               className="w-full mt-4 bg-amber-400 text-gray-900 font-bold py-4 rounded-xl text-sm"
@@ -173,7 +168,6 @@ export default function PlaceScheduler({ place, onClose }: Props) {
             </button>
           </div>
         ) : (
-          // ── Tela de confirmação ──────────────────────────────────────────
           <div className="px-5 pb-10 pt-4 flex flex-col items-center text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <Check size={32} className="text-green-600" strokeWidth={2.5} />

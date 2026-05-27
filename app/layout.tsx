@@ -5,7 +5,7 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "Rolê — O que fazer hoje?",
+  title: "Que tal mais um?",
   description: "Descubra shows, bares, restaurantes, parques, museus e muito mais perto de você.",
   keywords: ["eventos", "shows", "bares", "restaurantes", "o que fazer hoje", "rolê"],
 };
